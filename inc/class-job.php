@@ -88,6 +88,11 @@ class Job {
 		$date->add( new DateInterval( "PT{$this->interval}S" ) );
 		$this->nextrun = $date->format( MYSQL_DATE_FORMAT );
 
+		$now = new \DateTime("now", new \DateTimeZone("UTC"));
+		if ($date->getTimestamp() < $now->getTimestamp()) {
+			$this->nextrun = $now->format( MYSQL_DATE_FORMAT );
+		}
+
 		$this->status = 'waiting';
 
 		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
