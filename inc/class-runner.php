@@ -115,6 +115,8 @@ class Runner {
 			// Check the running workers
 			$this->check_workers();
 
+            $this->check_locked_jobs_without_active_worker();
+
 			// Do we have workers to spare?
 			if ( count( $this->workers ) === $this->options['max_workers'] ) {
 				// At maximum workers, wait a cycle
@@ -256,6 +258,48 @@ class Runner {
 		 */
 		return $this->hooks->run( 'Runner.get_next_job.job', $data );
 	}
+
+
+    protected function check_locked_jobs_without_active_worker() {
+        $lockedJobs = $this->get_locked_jobs();
+
+        foreach ($lockedJobs as $job) {
+            $isJobBeingWorkedOn = false;
+
+            foreach ($this->workers as $worker) {
+                if ($worker->job->id === $job->id) {
+                    $isJobBeingWorkedOn = true;
+                    break;
+                }
+            }
+
+            if ($isJobBeingWorkedOn) {
+                continue;
+            }
+
+            printf( '[  ] Job is locked without active worker: %s' . PHP_EOL, print_r($job, true));
+
+            $logger = $this->hooks->run(
+                'Runner.check_workers.logger',
+                new Logger( $this->db, $this->table_prefix )
+            );
+
+            $job->mark_failed();
+            $logger->log_job_failed( $job, 'Job remained locked without active worker.' );
+            printf( '[  ] Job marked as failed: %s' . PHP_EOL, print_r($job, true));
+        }
+    }
+
+    protected function get_locked_jobs() {
+        $query = "SELECT * FROM {$this->table_prefix}cavalcade_jobs";
+        $query .= ' WHERE status = "running"';
+        $query .= ' ORDER BY nextrun ASC';
+
+        $statement = $this->db->prepare( $query );
+        $statement->execute();
+
+        return $statement->fetchAll(PDO::FETCH_CLASS, __NAMESPACE__ . '\\Job', [ $this->db, $this->table_prefix ] );
+    }
 
 	protected function run_job( $job ) {
 		// Mark the job as started
