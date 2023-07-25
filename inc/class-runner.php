@@ -101,6 +101,7 @@ class Runner {
 		 */
 		$this->hooks->run( 'Runner.run.before' );
 
+        $noOfActiveWorkers = 0;
 		while ( true ) {
 			// Check for any signals we've received
 			pcntl_signal_dispatch();
@@ -116,6 +117,13 @@ class Runner {
 			$this->check_workers();
 
             $this->check_locked_jobs_without_active_worker();
+
+            if (count( $this->workers ) != $noOfActiveWorkers) {
+                $noOfActiveWorkers = count($this->workers);
+                printf( '[  ] Number of active workers: %s' . PHP_EOL, $noOfActiveWorkers );
+                printf( '[  ] Number of free workers: %s' . PHP_EOL, $this->options['max_workers'] - $noOfActiveWorkers );
+                printf( '[  ] Active workers: %s' . PHP_EOL, print_r( $this->workers, true ) );
+            }
 
 			// Do we have workers to spare?
 			if ( count( $this->workers ) === $this->options['max_workers'] ) {
