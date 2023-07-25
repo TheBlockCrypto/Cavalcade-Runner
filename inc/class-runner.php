@@ -44,9 +44,9 @@ class Runner {
 	 *
 	 * @return self
 	 */
-	public static function instance() {
+	public static function instance($options = []) {
 		if ( empty( static::$instance ) ) {
-			static::$instance = new static();
+			static::$instance = new static($options);
 		}
 
 		return static::$instance;
