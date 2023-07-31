@@ -27,7 +27,7 @@ EOF;
 
 $wp_path = isset( $argv[1] ) ? $argv[1] : '.';
 
-$runner = Runner::instance();
+$runner = Runner::instance(['max_workers' => intval(getenv('CRON_MAX_WORKERS')) ?: 4]);
 try {
 	$runner->bootstrap( $wp_path );
 	$runner->run();
