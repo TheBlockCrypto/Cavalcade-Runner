@@ -10,10 +10,14 @@ class Logger {
 	}
 
 	public function log_job_completed( Job $job, $message = '' ) {
+		$runtime = time() - $job->startTimestamp;
+		$message = "Runtime: $runtime s. $message";
 		$this->log_run( $job->id, 'completed', $message );
 	}
 
 	public function log_job_failed( Job $job, $message = '' ) {
+		$runtime = time() - $job->startTimestamp;
+		$message = "Runtime: $runtime s. $message";
 		$this->log_run( $job->id, 'failed', $message );
 	}
 
