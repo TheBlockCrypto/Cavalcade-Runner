@@ -347,6 +347,7 @@ class Runner {
 		$this->workers[] = $worker;
 
 		printf( '[%d] Started worker' . PHP_EOL, $job->id );
+		$job->startTimestamp = time();
 
 		/**
 		 * Action after starting a new worker.

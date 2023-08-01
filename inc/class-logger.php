@@ -10,11 +10,25 @@ class Logger {
 	}
 
 	public function log_job_completed( Job $job, $message = '' ) {
-		$this->log_run( $job->id, 'completed', $message );
+        $runtime = time() - $job->startTimestamp;
+
+        $content = "Message: $message" . "<br/>";
+        $content .= "Runtime: $runtime s" . "<br/>";
+        $content .= "Hook: " . $job->hook . "<br/>";
+        $content .= "Args: " . json_encode($job->args);
+
+		$this->log_run( $job->id, 'completed', $content );
 	}
 
 	public function log_job_failed( Job $job, $message = '' ) {
-		$this->log_run( $job->id, 'failed', $message );
+        $runtime = time() - $job->startTimestamp;
+
+        $content = "Message: $message" . "<br/>";
+        $content .= "Runtime: $runtime s" . "<br/>";
+        $content .= "Hook: " . $job->hook . "<br/>";
+        $content .= "Args: " . json_encode($job->args);
+
+		$this->log_run( $job->id, 'failed', $content );
 	}
 
 	protected function log_run( $job_id, $status, $message = '' ) {

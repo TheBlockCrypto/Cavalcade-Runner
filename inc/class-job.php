@@ -21,6 +21,7 @@ class Job {
 
 	protected $db;
 	protected $table_prefix;
+	public $startTimestamp = '';
 
 	public function __construct( $db, $table_prefix ) {
 		$this->db = $db;
