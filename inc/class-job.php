@@ -121,4 +121,17 @@ class Job {
 		$statement->bindValue( ':id', $this->id );
 		$statement->execute();
 	}
+
+    /**
+     * Mark the job as waiting.
+     */
+    public function mark_waiting() {
+        $query = "UPDATE {$this->table_prefix}cavalcade_jobs";
+        $query .= ' SET status = "waiting"';
+        $query .= ' WHERE id = :id';
+
+        $statement = $this->db->prepare( $query );
+        $statement->bindValue( ':id', $this->id );
+        $statement->execute();
+    }
 }
