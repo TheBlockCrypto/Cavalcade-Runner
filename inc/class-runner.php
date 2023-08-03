@@ -5,6 +5,9 @@
 
 namespace HM\Cavalcade\Runner;
 
+use DateInterval;
+use DateTime;
+use DateTimeZone;
 use Exception;
 use PDO;
 
@@ -285,7 +288,21 @@ class Runner {
                 continue;
             }
 
-            printf( '[  ] Job is locked without active worker: %s' . PHP_EOL, print_r($job, true));
+            $jobMaxExecutionTime = $job->interval ? intval($job->interval * 0.9) : 100;
+            $jobMaxEndTime = new DateTime( $job->nextrun, new DateTimeZone( 'UTC' ) );
+            $jobMaxEndTime->add( new DateInterval( "PT{$jobMaxExecutionTime}S" ) );
+
+            $currentTime = time();
+
+            if ($currentTime < $jobMaxEndTime->getTimestamp()) {
+                continue;
+            }
+
+            if ($job->interval) {
+                $job->mark_waiting();
+                printf( '[  ] Job marked as waiting: %s' . PHP_EOL, print_r($job, true));
+                continue;
+            }
 
             $logger = $this->hooks->run(
                 'Runner.check_workers.logger',
@@ -293,7 +310,7 @@ class Runner {
             );
 
             $job->mark_failed();
-            $logger->log_job_failed( $job, 'Job remained locked without active worker.' );
+            $logger->log_job_failed( $job, 'Job is locked without active worker on current instance and reached timeout.' );
             printf( '[  ] Job marked as failed: %s' . PHP_EOL, print_r($job, true));
         }
     }

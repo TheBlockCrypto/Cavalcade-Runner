@@ -85,15 +85,7 @@ class Job {
 	}
 
 	public function reschedule() {
-		$date = new DateTime( $this->nextrun, new DateTimeZone( 'UTC' ) );
-		$date->add( new DateInterval( "PT{$this->interval}S" ) );
-		$this->nextrun = $date->format( MYSQL_DATE_FORMAT );
-
-		$now = new \DateTime("now", new \DateTimeZone("UTC"));
-		if ($date->getTimestamp() < $now->getTimestamp()) {
-			$this->nextrun = $now->format( MYSQL_DATE_FORMAT );
-		}
-
+        $this->nextrun = $this->calculateNextRun();
 		$this->status = 'waiting';
 
 		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
@@ -121,4 +113,36 @@ class Job {
 		$statement->bindValue( ':id', $this->id );
 		$statement->execute();
 	}
+
+    /**
+     * Mark the job as waiting.
+     */
+    public function mark_waiting() {
+        $query = "UPDATE {$this->table_prefix}cavalcade_jobs";
+        $query .= ' SET status = "waiting"';
+        $query .= ' WHERE id = :id';
+
+        $statement = $this->db->prepare( $query );
+        $statement->bindValue( ':id', $this->id );
+        $statement->execute();
+    }
+
+    private function calculateNextRun(): string
+    {
+        $start = new DateTime( $this->start, new DateTimeZone( 'UTC' ) );
+        $startUnix = $start->getTimestamp();
+
+        $nowUnix = time();
+
+        if ($startUnix > $nowUnix) {
+            return $this->start;
+        }
+
+        $delayFromStartTillNextRun = (floor(($nowUnix - $startUnix) / $this->interval) + 1) * $this->interval;
+
+        $date = new DateTime( $this->start, new DateTimeZone( 'UTC' ) );
+        $date->add( new DateInterval( "PT{$delayFromStartTillNextRun}S" ) );
+
+        return $date->format( MYSQL_DATE_FORMAT );
+    }
 }
