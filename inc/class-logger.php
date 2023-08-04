@@ -38,7 +38,7 @@ class Logger {
 		$statement = $this->db->prepare( $query );
 		$statement->bindValue( ':job', $job_id );
 		$statement->bindValue( ':status', $status );
-		$statement->bindValue( ':timestamp', date( MYSQL_DATE_FORMAT ) );
+		$statement->bindValue( ':timestamp', (new \DateTime('now', new \DateTimeZone('America/New_York')))->format(MYSQL_DATE_FORMAT));
 		$statement->bindValue( ':content', $message );
 		$statement->execute();
 	}
