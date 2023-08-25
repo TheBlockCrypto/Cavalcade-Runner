@@ -1,7 +1,7 @@
 {
-	"name": "humanmade/cavalcade-runner",
+	"name": "theblockcrypto/cavalcade-runner",
 	"description": "Daemon for Cavalcade, a scalable WordPress jobs system.",
-	"homepage": "https://github.com/humanmade/Cavalcade-Runner",
+	"homepage": "https://github.com/TheBlockCrypto/Cavalcade-Runner",
 	"license": "GPL-2.0+",
 	"authors": [
 		{
