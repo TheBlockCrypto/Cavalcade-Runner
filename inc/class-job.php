@@ -9,7 +9,8 @@ use PDO;
 
 const MYSQL_DATE_FORMAT = 'Y-m-d H:i:s';
 
-class Job {
+class Job
+{
 	public $id;
 	public $site;
 	public $hook;
@@ -23,28 +24,30 @@ class Job {
 	protected $table_prefix;
 	public $startTimestamp = '';
 
-	public function __construct( $db, $table_prefix ) {
+	public function __construct($db, $table_prefix)
+	{
 		$this->db = $db;
 		$this->table_prefix = $table_prefix;
 	}
 
-	public function get_site_url() {
+	public function get_site_url()
+	{
 		$query = "SHOW TABLES LIKE '{$this->table_prefix}blogs'";
-		$statement = $this->db->prepare( $query );
+		$statement = $this->db->prepare($query);
 		$statement->execute();
 
-		if ( 0 === $statement->rowCount() ) {
+		if (0 === $statement->rowCount()) {
 			return false;
 		}
 
 		$query = "SELECT domain, path FROM {$this->table_prefix}blogs";
 		$query .= ' WHERE blog_id = :site';
 
-		$statement = $this->db->prepare( $query );
-		$statement->bindValue( ':site', $this->site );
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':site', $this->site);
 		$statement->execute();
 
-		$data = $statement->fetch( PDO::FETCH_ASSOC );
+		$data = $statement->fetch(PDO::FETCH_ASSOC);
 		$url = $data['domain'] . $data['path'];
 		return $url;
 	}
@@ -56,41 +59,44 @@ class Job {
 	 *
 	 * @return bool True if we acquired the lock, false if we couldn't.
 	 */
-	public function acquire_lock() {
+	public function acquire_lock()
+	{
 		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
 		$query .= ' SET status = "running"';
 		$query .= ' WHERE status = "waiting" AND id = :id';
 
-		$statement = $this->db->prepare( $query );
-		$statement->bindValue( ':id', $this->id );
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':id', $this->id);
 		$statement->execute();
 
 		$rows = $statement->rowCount();
-		return ( $rows === 1 );
+		return ($rows === 1);
 	}
 
-	public function mark_completed() {
-		if ( $this->interval ) {
+	public function mark_completed()
+	{
+		if ($this->interval) {
 			$this->reschedule();
 		} else {
 			$this->update_status_to_completed();
 		}
 	}
 
-    private function update_status_to_completed()
-    {
+	private function update_status_to_completed()
+	{
 		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
 		$query .= ' SET status = "completed"';
 		$query .= ' WHERE id = :id';
 
-		$statement = $this->db->prepare( $query );
-		$statement->bindValue( ':id', $this->id );
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':id', $this->id);
 		$statement->execute();
 	}
 
-	public function reschedule() {
+	public function reschedule()
+	{
 		if ($this->isTheSameJobAlreadyScheduled()) {
-			printf( '[  ] Job already scheduled, skipping rescheuduling!: %s' . PHP_EOL, $this->hook );
+			printf('[  ] Job already scheduled, skipping rescheuduling!: %s' . PHP_EOL, $this->hook);
 			$this->update_status_to_completed();
 			return;
 		}
@@ -102,59 +108,61 @@ class Job {
 		$query .= ' SET status = :status, nextrun = :nextrun';
 		$query .= ' WHERE id = :id';
 
-		$statement = $this->db->prepare( $query );
-		$statement->bindValue( ':id', $this->id );
-		$statement->bindValue( ':status', $this->status );
-		$statement->bindValue( ':nextrun', $this->nextrun );
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':id', $this->id);
+		$statement->bindValue(':status', $this->status);
+		$statement->bindValue(':nextrun', $this->nextrun);
 		$statement->execute();
 	}
 
 	/**
 	 * Mark the job as failed.
 	 *
-	 * @param  string $message failure detail message
+	 * @param string $message failure detail message
 	 */
-	public function mark_failed( $message = '' ) {
+	public function mark_failed($message = '')
+	{
 		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
 		$query .= ' SET status = "failed"';
 		$query .= ' WHERE id = :id';
 
-		$statement = $this->db->prepare( $query );
-		$statement->bindValue( ':id', $this->id );
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':id', $this->id);
 		$statement->execute();
 	}
 
-    /**
-     * Mark the job as waiting.
-     */
-    public function mark_waiting() {
-        $query = "UPDATE {$this->table_prefix}cavalcade_jobs";
-        $query .= ' SET status = "waiting"';
-        $query .= ' WHERE id = :id';
+	/**
+	 * Mark the job as waiting.
+	 */
+	public function mark_waiting()
+	{
+		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
+		$query .= ' SET status = "waiting"';
+		$query .= ' WHERE id = :id';
 
-        $statement = $this->db->prepare( $query );
-        $statement->bindValue( ':id', $this->id );
-        $statement->execute();
-    }
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':id', $this->id);
+		$statement->execute();
+	}
 
-    private function calculateNextRun(): string
-    {
-        $start = new DateTime( $this->start, new DateTimeZone( 'UTC' ) );
-        $startUnix = $start->getTimestamp();
+	private function calculateNextRun(): string
+	{
+		$start = new DateTime($this->start, new DateTimeZone('UTC'));
+		$startUnix = $start->getTimestamp();
 
-        $nowUnix = time();
+		$nowUnix = time();
 
-        if ($startUnix > $nowUnix) {
-            return $this->start;
-        }
+		if ($startUnix > $nowUnix) {
+			return $this->start;
+		}
 
-        $delayFromStartTillNextRun = (floor(($nowUnix - $startUnix) / $this->interval) + 1) * $this->interval;
+		$delayFromStartTillNextRun = (floor(($nowUnix - $startUnix) / $this->interval) + 1) * $this->interval;
 
-        $date = new DateTime( $this->start, new DateTimeZone( 'UTC' ) );
-        $date->add( new DateInterval( "PT{$delayFromStartTillNextRun}S" ) );
+		$date = new DateTime($this->start, new DateTimeZone('UTC'));
+		$date->add(new DateInterval("PT{$delayFromStartTillNextRun}S"));
 
-        return $date->format(MYSQL_DATE_FORMAT);
-    }
+		return $date->format(MYSQL_DATE_FORMAT);
+	}
 
 	private function isTheSameJobAlreadyScheduled(): bool
 	{
