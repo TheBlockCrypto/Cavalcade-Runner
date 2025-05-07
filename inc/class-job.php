@@ -96,7 +96,7 @@ class Job
 	public function reschedule()
 	{
 		if ($this->isTheSameJobAlreadyScheduled()) {
-			printf('[  ] Job already scheduled, skipping rescheuduling!: %s' . PHP_EOL, $this->hook);
+			printf('[  ] Job already scheduled: %s' . PHP_EOL, $this->hook);
 			$this->update_status_to_completed();
 			return;
 		}
