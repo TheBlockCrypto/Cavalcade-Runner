@@ -70,22 +70,32 @@ class Job {
 	}
 
 	public function mark_completed() {
-		$data = [];
 		if ( $this->interval ) {
 			$this->reschedule();
 		} else {
-			$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
-			$query .= ' SET status = "completed"';
-			$query .= ' WHERE id = :id';
-
-			$statement = $this->db->prepare( $query );
-			$statement->bindValue( ':id', $this->id );
-			$statement->execute();
+			$this->update_status_to_completed();
 		}
 	}
 
+    private function update_status_to_completed()
+    {
+		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
+		$query .= ' SET status = "completed"';
+		$query .= ' WHERE id = :id';
+
+		$statement = $this->db->prepare( $query );
+		$statement->bindValue( ':id', $this->id );
+		$statement->execute();
+	}
+
 	public function reschedule() {
-        $this->nextrun = $this->calculateNextRun();
+		if ($this->isTheSameJobAlreadyScheduled()) {
+			printf( '[  ] Job already scheduled, skipping rescheuduling!: %s' . PHP_EOL, $this->hook );
+			$this->update_status_to_completed();
+			return;
+		}
+
+		$this->nextrun = $this->calculateNextRun();
 		$this->status = 'waiting';
 
 		$query = "UPDATE {$this->table_prefix}cavalcade_jobs";
@@ -143,6 +153,23 @@ class Job {
         $date = new DateTime( $this->start, new DateTimeZone( 'UTC' ) );
         $date->add( new DateInterval( "PT{$delayFromStartTillNextRun}S" ) );
 
-        return $date->format( MYSQL_DATE_FORMAT );
+        return $date->format(MYSQL_DATE_FORMAT);
     }
+
+	private function isTheSameJobAlreadyScheduled(): bool
+	{
+		$query = "SELECT id FROM {$this->table_prefix}cavalcade_jobs";
+		$query .= ' WHERE status = "waiting"
+                    AND hook = :hook
+                    AND site = :site
+                    AND id != :id';
+
+		$statement = $this->db->prepare($query);
+		$statement->bindValue(':hook', $this->hook);
+		$statement->bindValue(':site', $this->site);
+		$statement->bindValue(':id', $this->id);
+		$statement->execute();
+
+		return (0 !== $statement->rowCount());
+	}
 }
