@@ -125,7 +125,12 @@ class Runner {
                 $noOfActiveWorkers = count($this->workers);
                 printf( '[  ] Number of active workers: %s' . PHP_EOL, $noOfActiveWorkers );
                 printf( '[  ] Number of free workers: %s' . PHP_EOL, $this->options['max_workers'] - $noOfActiveWorkers );
-                printf( '[  ] Active workers: %s' . PHP_EOL, print_r( $this->workers, true ) );
+                // Only job id and hook: print_r() of the workers dumped every running job's
+                // full output and process resources on each change (B2-1710).
+                $active = array_map( function ( $worker ) {
+                    return sprintf( '%d:%s', $worker->job->id, $worker->job->hook );
+                }, $this->workers );
+                printf( '[  ] Active workers: %s' . PHP_EOL, implode( ', ', $active ) );
             }
 
 			// Do we have workers to spare?
@@ -300,7 +305,7 @@ class Runner {
 
             if ($job->interval) {
                 $job->mark_waiting();
-                printf( '[  ] Job marked as waiting: %s' . PHP_EOL, print_r($job, true));
+                printf( '[  ] Job marked as waiting: %d %s (next run %s)' . PHP_EOL, $job->id, $job->hook, $job->nextrun );
                 continue;
             }
 
@@ -311,7 +316,7 @@ class Runner {
 
             $job->mark_failed();
             $logger->log_job_failed( $job, 'Job is locked without active worker on current instance and reached timeout.' );
-            printf( '[  ] Job marked as failed: %s' . PHP_EOL, print_r($job, true));
+            printf( '[  ] Job marked as failed: %d %s (next run %s)' . PHP_EOL, $job->id, $job->hook, $job->nextrun );
         }
     }
 
